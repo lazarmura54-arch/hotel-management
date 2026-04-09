@@ -23,10 +23,12 @@ db = SQLAlchemy(app)
 with app.app_context():
     db.create_all()
 
+# ...existing code...
+@app.route("/init-db")
+def init_db():
     from setup_db import populate_database
     populate_database()
-# ...existing code...
-
+    return "Database initialized!"
 
 # --- Flask-Login Configuration ---
 login_manager = LoginManager()
