@@ -21,7 +21,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 # ✅ ADD THIS BLOCK
-with app.app_context():
+@app.before_first_request
+def create_tables():
     db.create_all()
 # ...existing code...
 
