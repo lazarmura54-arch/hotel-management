@@ -24,6 +24,10 @@ db = SQLAlchemy(app)
 @app.before_first_request
 def create_tables():
     db.create_all()
+
+    # ✅ ADD THIS
+    from setup_db import populate_database
+    populate_database()
 # ...existing code...
 
 
