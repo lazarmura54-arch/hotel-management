@@ -20,6 +20,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
 )
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+# ✅ ADD THIS BLOCK
+with app.app_context():
+    db.create_all()
 # ...existing code...
 
 
