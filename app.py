@@ -25,9 +25,12 @@ db = SQLAlchemy(app)
 def create_tables():
     db.create_all()
 
-    # ✅ ADD THIS
     from setup_db import populate_database
-    populate_database()
+
+    try:
+        populate_database()
+    except Exception as e:
+        print("Database already populated or error:", e)
 # ...existing code...
 
 
