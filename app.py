@@ -20,15 +20,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
 )
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
-# ✅ ADD THIS BLOCK
 with app.app_context():
     db.create_all()
-
-    from setup_db import populate_database
-    try:
-        populate_database()
-    except Exception as e:
-        print("DB already populated or error:", e)
 # ...existing code...
 
 
