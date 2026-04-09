@@ -22,6 +22,9 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 with app.app_context():
     db.create_all()
+
+    from setup_db import populate_database
+    populate_database()
 # ...existing code...
 
 
