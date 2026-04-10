@@ -233,6 +233,12 @@ def order_history():
 def contact():
     return render_template('contact_us.html')
 
+@app.route('/init_db')
+def init_db():
+    with app.app_context():
+        db.create_all()
+    return "Database initialized!"
+
 
 # =========================
 # RUN
