@@ -4,19 +4,31 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 
+# =========================
+# APP CONFIG
+# =========================
+
 app = Flask(__name__)
 
-# CONFIG
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-secret')
+
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
     'DATABASE_URL',
-    'sqlite:///local.db'  # fallback for local
+    'sqlite:///local.db'
 )
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# LOGIN MANAGER
+# ✅ IMPORTANT: CREATE TABLES (WORKS ON RENDER)
+with app.app_context():
+    db.create_all()
+
+# =========================
+# LOGIN SETUP
+# =========================
+
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
@@ -33,7 +45,7 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
 
-    # ✅ PROFILE FIELDS
+    # PROFILE FIELDS
     name = db.Column(db.String(100))
     mobile = db.Column(db.String(20))
     address = db.Column(db.String(300))
@@ -153,14 +165,13 @@ def address_form():
         items = request.form.get('items')
         total = float(request.form.get('total'))
 
-        # ✅ SAVE PROFILE
+        # SAVE PROFILE
         current_user.name = name
         current_user.mobile = mobile
         current_user.address = address
-
         db.session.commit()
 
-        # ✅ SAVE ORDER
+        # SAVE ORDER
         order = Order(
             name=name,
             mobile=mobile,
@@ -174,8 +185,11 @@ def address_form():
         db.session.commit()
 
         return render_template('order_confirmation.html',
-                               name=name, phone=mobile,
-                               address=address, items=items, total=total)
+                               name=name,
+                               phone=mobile,
+                               address=address,
+                               items=items,
+                               total=total)
 
     total = request.args.get('total', '0')
     items = request.args.getlist('items')
@@ -225,6 +239,4 @@ def contact():
 # =========================
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
     app.run(debug=True)
