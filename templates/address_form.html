@@ -53,7 +53,15 @@
         <input type="text" id="mobile" name="mobile" required>
 
         <label for="address">Address:</label>
-        <textarea id="address" name="address" required rows="3"></textarea>
+        <textarea id="address" name="address" rows="3" required>{{ current_user.address or '' }}</textarea>
+        <a href="/profile">Edit Address</a>
+        {% if current_user.address %}<a href="/profile" style="display:block; margin-top:5px; color:blue;">Edit Address</a>{% endif %}
+
+        <input type="text" name="fname" value="{{ current_user.username or '' }}">
+        <input type="text" name="mobile" value="{{ current_user.phone or '' }}">
+
+        <textarea name="address">{{ current_user.address or '' }}</textarea>
+        <input type="text" name="mobile" value="{{ current_user.phone or '' }}">
 
         <label for="items">Items:</label>
         <textarea id="items" name="items" readonly rows="4">{{ items | join('\n') }}</textarea>

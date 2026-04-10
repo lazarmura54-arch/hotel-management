@@ -1,0 +1,11 @@
+<h2>User Profile</h2>
+
+<form method="POST">
+  <label>Phone:</label>
+  <input type="text" name="phone" value="{{ user.phone or '' }}" />
+
+  <label>Address:</label>
+  <textarea name="address">{{ user.address or '' }}</textarea>
+
+  <button type="submit">Save</button>
+</form>

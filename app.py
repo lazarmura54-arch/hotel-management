@@ -30,7 +30,14 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 # If a user tries to access a protected page, redirect them to the 'login' page.
 login_manager.login_view = 'login' 
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True)
+    password = db.Column(db.String(100))
 
+    # NEW FIELDS 👇
+    address = db.Column(db.String(300))
+    phone = db.Column(db.String(20))
 
 # --- Database Models ---
 
@@ -171,21 +178,38 @@ def address_form():
         items_str = request.form.get('items')
         total_str = request.form.get('total')
 
+        # ✅ Validation
         if not all([name, mobile, address, items_str, total_str]):
             flash('Please fill all fields to submit your order.', 'error')
             return redirect(url_for('home'))
 
+        # ✅ Convert total safely
         try:
             total_val = float(total_str)
         except (TypeError, ValueError):
             flash('Invalid total amount.', 'error')
             return redirect(url_for('home'))
 
+        # ✅ SAVE USER PROFILE (IMPORTANT FEATURE)
+        current_user.address = address
+        current_user.phone = mobile
+
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            flash('Failed to update profile.', 'error')
+
+        # ✅ SAVE ORDER
         new_order = Order(
-            name=name, mobile=mobile, address=address, items=items_str,
+            name=name,
+            mobile=mobile,
+            address=address,
+            items=items_str,
             total=total_val,
             user_id=current_user.id
         )
+
         try:
             db.session.add(new_order)
             db.session.commit()
@@ -194,15 +218,38 @@ def address_form():
             flash('Failed to save order. Try again.', 'error')
             return redirect(url_for('home'))
 
-        return render_template('order_confirmation.html',
-                               name=name, phone=mobile, address=address,
-                               items=items_str, total=f"{total_val:.2f}")
+        # ✅ SUCCESS PAGE
+        return render_template(
+            'order_confirmation.html',
+            name=name,
+            phone=mobile,
+            address=address,
+            items=items_str,
+            total=f"{total_val:.2f}"
+        )
 
-    # GET: render the address form (allow prefilled total/items via query params)
+    # ✅ GET REQUEST (SHOW FORM)
     total = request.args.get('total', '0.00')
-    items = request.args.getlist('items')  # supports multiple ?items=...
-    # pass items as a list or join into a string if your template expects that
-    return render_template('address_form.html', total=total, items=items)
+    items = request.args.getlist('items')
+
+    return render_template(
+        'address_form.html',
+        total=total,
+        items=items
+    )
+
+@app.route('/profile', methods=['GET', 'POST'])
+@login_required
+def profile():
+    user = current_user
+
+    if request.method == 'POST':
+        user.address = request.form['address']
+        user.phone = request.form['phone']
+        db.session.commit()
+        return redirect(url_for('profile'))
+
+    return render_template('profile.html', user=user)
 
 # ...existing code...
 
