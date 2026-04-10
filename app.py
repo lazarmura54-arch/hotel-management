@@ -235,8 +235,19 @@ def contact():
 
 @app.route('/init_db')
 def init_db():
-    with app.app_context():
-        db.create_all()
+    db.create_all()
+
+    # insert sample data if empty
+    if not MenuItem.query.first():
+        items = [
+            MenuItem(name="Biryani", price=150, hotel="Lazar Hotel"),
+            MenuItem(name="Dosa", price=50, hotel="Lazar Hotel"),
+            MenuItem(name="Chicken Curry", price=180, hotel="Nani Hotel"),
+            MenuItem(name="Fried Rice", price=120, hotel="Nani Hotel"),
+        ]
+        db.session.add_all(items)
+        db.session.commit()
+
     return "Database initialized!"
 
 
