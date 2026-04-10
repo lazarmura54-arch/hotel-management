@@ -1,0 +1,30 @@
+{% extends "base.html" %} {% block title %}Order History{% endblock %} {% block
+content %}
+<div class="form-container">
+  <h2>Your Orders</h2>
+
+  {% if orders %} {% for order in orders %}
+  <div
+    style="
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 5px;
+    "
+  >
+    <p><strong>Name:</strong> {{ order.name }}</p>
+    <p><strong>Mobile:</strong> {{ order.mobile }}</p>
+    <p><strong>Address:</strong> {{ order.address }}</p>
+
+    <p><strong>Items:</strong></p>
+    <pre>{{ order.items }}</pre>
+
+    <p><strong>Total:</strong> ₹{{ order.total }}</p>
+  </div>
+  {% endfor %} {% else %}
+  <p>No orders yet.</p>
+  {% endif %}
+
+  <a href="/">⬅ Back to Home</a>
+</div>
+{% endblock %}

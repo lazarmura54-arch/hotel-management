@@ -1,11 +1,35 @@
-<h2>User Profile</h2>
+{% extends "base.html" %} {% block title %}Profile{% endblock %} {% block
+content %}
+<div class="form-container">
+  <h2>My Profile</h2>
 
-<form method="POST">
-  <label>Phone:</label>
-  <input type="text" name="phone" value="{{ user.phone or '' }}" />
+  <form method="POST">
+    <label>Name:</label>
+    <input
+      type="text"
+      name="name"
+      value="{{ current_user.name or '' }}"
+      required
+    />
 
-  <label>Address:</label>
-  <textarea name="address">{{ user.address or '' }}</textarea>
+    <label>Mobile:</label>
+    <input
+      type="text"
+      name="mobile"
+      value="{{ current_user.mobile or '' }}"
+      required
+    />
 
-  <button type="submit">Save</button>
-</form>
+    <label>Address:</label>
+    <textarea name="address" rows="3" required>
+{{ current_user.address or '' }}
+        </textarea
+    >
+
+    <input type="submit" value="Update Profile" />
+  </form>
+
+  <br />
+  <a href="{{ url_for('order_history') }}">View Order History</a>
+</div>
+{% endblock %}

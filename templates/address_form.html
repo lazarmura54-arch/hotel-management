@@ -45,31 +45,42 @@
 {% block content %}
 <div class="form-container">
     <h2>Enter Delivery Details</h2>
+
     <form action="{{ url_for('address_form') }}" method="POST">
+
+        <!-- ✅ Full Name (Auto-fill optional) -->
         <label for="fname">Full Name:</label>
-        <input type="text" id="fname" name="fname" required>
+        <input type="text" id="fname" name="fname"
+               value="{{ current_user.name or '' }}" required>
 
+        <!-- ✅ Mobile -->
         <label for="mobile">Mobile Number:</label>
-        <input type="text" id="mobile" name="mobile" required>
+        <input type="text" id="mobile" name="mobile"
+               value="{{ current_user.mobile or '' }}" required>
 
+        <!-- ✅ Address (AUTO-FILL FIXED) -->
         <label for="address">Address:</label>
         <textarea id="address" name="address" rows="3" required>{{ current_user.address or '' }}</textarea>
-        <a href="/profile">Edit Address</a>
-        {% if current_user.address %}<a href="/profile" style="display:block; margin-top:5px; color:blue;">Edit Address</a>{% endif %}
 
-        <input type="text" name="fname" value="{{ current_user.username or '' }}">
-        <input type="text" name="mobile" value="{{ current_user.phone or '' }}">
+        <!-- ✅ Edit Link -->
+        <a href="/profile" style="display:block; margin-top:5px; color:blue;">
+            Edit Address
+        </a>
 
-        <textarea name="address">{{ current_user.address or '' }}</textarea>
-        <input type="text" name="mobile" value="{{ current_user.phone or '' }}">
-
+        <!-- ✅ Items -->
         <label for="items">Items:</label>
-        <textarea id="items" name="items" readonly rows="4">{{ items | join('\n') }}</textarea>
+        <textarea id="items" name="items" readonly rows="4">
+{{ items | join('\n') }}
+        </textarea>
 
+        <!-- ✅ Total -->
         <label for="total">Total:</label>
-        <input type="text" id="total" name="total" value="{{ "%.2f"|format(total|float) }}" readonly>
+        <input type="text" id="total" name="total"
+               value="{{ "%.2f"|format(total|float) }}" readonly>
 
+        <!-- ✅ Submit -->
         <input type="submit" value="Submit Order">
+
     </form>
 </div>
 {% endblock %}
