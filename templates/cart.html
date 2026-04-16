@@ -7,13 +7,13 @@
   <h4>Your cart is empty 😢</h4>
   <a href="/" class="btn btn-custom mt-3">Browse Food</a>
 </div>
+
 {% else %} {% for i in items %}
 <div class="card p-3 mb-3">
   <div class="d-flex justify-content-between">
     <h5>{{ i.name }}</h5>
     <h6>₹{{ i.total }}</h6>
   </div>
-
   <p>Qty: {{ i.qty }}</p>
 </div>
 {% endfor %}
@@ -22,6 +22,54 @@
 
 <p><strong>Payment:</strong> Cash on Delivery</p>
 
-<a href="/place_order" class="btn btn-success">Place Order</a>
+<!-- ✅ FIX: FORM instead of link -->
+<form method="POST" action="/place_order">
+  <input
+    type="text"
+    name="street"
+    class="form-control mb-2"
+    placeholder="Street"
+    required
+  />
+  <input
+    type="text"
+    name="village"
+    class="form-control mb-2"
+    placeholder="Village"
+    required
+  />
+  <input
+    type="text"
+    name="city"
+    class="form-control mb-2"
+    placeholder="City"
+    required
+  />
+  <input
+    type="text"
+    name="state"
+    class="form-control mb-2"
+    placeholder="State"
+    required
+  />
+  <input
+    type="text"
+    name="pincode"
+    class="form-control mb-2"
+    placeholder="Pincode"
+    required
+  />
+  <input
+    type="text"
+    name="mobile"
+    class="form-control mb-2"
+    placeholder="Mobile Number"
+    required
+  />
+
+  <button type="submit" class="btn btn-success w-100 mt-2">
+    Place Order ✅
+  </button>
+</form>
 
 {% endif %} {% endblock %}

@@ -159,58 +159,57 @@ def place_order():
     if not cart:
         return "Cart is empty ❌"
 
-    # ✅ Get form data safely
+    # ✅ Get form data
     street = request.form.get('street')
     village = request.form.get('village')
     city = request.form.get('city')
     state = request.form.get('state')
     pincode = request.form.get('pincode')
-    mobile = request.form.get('mobile')
-    payment_method = request.form.get('payment')
 
     # ✅ Combine address
     full_address = f"{street}, {village}, {city}, {state} - {pincode}"
 
     total_price = 0
 
-    # ✅ Create Order
+    # ✅ Create order (MATCH MODEL)
     order = Order(
         user_id=session['user_id'],
         address=full_address,
-        mobile=mobile,
-        payment_method=payment_method,
+        payment="Cash on Delivery",
         status="Placed",
-        total_price=0
+        total=0
     )
 
     db.session.add(order)
     db.session.commit()
 
-    # ✅ Add items to order
-    for item_id, item in cart.items():
+    # ✅ Add items
+    for item_id, qty in cart.items():
 
-        quantity = item.get('quantity', 1)
-        price = item.get('price', 0)
+        item = MenuItem.query.get(int(item_id))
 
-        total_price += price * quantity
+        if item:
+            total_price += item.price * qty
 
-        order_item = OrderItem(
-            order_id=order.id,
-            name=item['name'],
-            price=price,
-            quantity=quantity
-        )
+            order_item = OrderItem(
+                order_id=order.id,
+                item_name=item.name,
+                price=item.price,
+                quantity=qty
+            )
 
-        db.session.add(order_item)
+            db.session.add(order_item)
 
     # ✅ Update total
-    order.total_price = total_price
+    order.total = total_price
     db.session.commit()
 
     # ✅ Clear cart
     session['cart'] = {}
+    session['cart_count'] = 0
 
     return redirect(f"/order_success/{order.id}")
+
 # ================= EXTRA =================
 
 @app.route('/profile')

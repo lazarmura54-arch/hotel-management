@@ -1,29 +1,21 @@
 {% extends "base.html" %} {% block content %}
 
-<h2 class="mb-4">{{ hotel.name }} Menu</h2>
+<h3 class="mb-4">{{ hotel.name }} Menu</h3>
 
 <div class="row">
   {% for item in items %}
-  <div class="col-lg-4 col-md-6 col-12 mb-4">
-    <div class="card h-100 shadow-sm">
-      <!-- IMAGE -->
-      <img
-        src="{{ url_for('static', filename='images/' + item.image) }}"
-        class="card-img-top food-img"
-      />
+  <div class="col-lg-3 col-md-4 col-sm-6 col-12 mb-3">
+    <div class="card">
+      <img src="{{ url_for('static', filename='images/' + item.image) }}" />
 
       <div class="card-body">
-        <!-- NAME -->
-        <h5 class="mb-1">{{ item.name }}</h5>
+        <h5>{{ item.name }}</h5>
 
-        <!-- ⭐ STATIC RATING -->
-        <p class="rating mb-1">⭐ 4.3 • 20 min</p>
+        <p style="color: #f4c150">⭐ {{ item.rating }} • 20 min</p>
 
-        <!-- PRICE -->
-        <h6 class="text-success mb-2">₹{{ item.price }}</h6>
+        <h6 class="text-success">₹{{ item.price }}</h6>
 
-        <!-- ADD TO CART -->
-        <a href="/add_to_cart/{{ item.id }}" class="btn btn-custom w-100">
+        <a href="/add_to_cart/{{ item.id }}" class="btn btn-custom w-100 mt-2">
           Add to Cart
         </a>
       </div>

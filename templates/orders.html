@@ -1,32 +1,26 @@
 {% extends "base.html" %} {% block content %}
 
-<h2 class="mb-4">📦 Your Orders</h2>
+<h3 class="mb-4">📦 My Orders</h3>
 
-{% if order_data %} {% for data in order_data %}
-<div class="card mb-3 p-3 shadow-sm">
+{% if order_data|length == 0 %}
+<p>No orders yet 😢</p>
+{% else %} {% for data in order_data %}
+<div class="card p-3 mb-4">
   <h5>Order #{{ data.order.id }}</h5>
-
-  <p>Status: <b>{{ data.order.status }}</b></p>
-  <p>Payment: {{ data.order.payment_method }}</p>
+  <p>Status: {{ data.order.status }}</p>
+  <p><strong>Address:</strong> {{ data.order.address }}</p>
 
   <hr />
 
-  {% for item in data.items %}
+  {% for item in data["items"] %}
   <div class="d-flex justify-content-between">
-    <span>{{ item.name }} x {{ item.quantity or 1 }}</span>
-    <span>₹{{ item.price * (item.quantity or 1) }}</span>
+    <span>{{ item.item_name }} (x{{ item.quantity }})</span>
+    <span>₹{{ item.price * item.quantity }}</span>
   </div>
   {% endfor %}
 
   <hr />
 
-  <h6>Total: ₹{{ data.order.total_price }}</h6>
+  <h6>Total: ₹{{ data.order.total }}</h6>
 </div>
-{% endfor %} {% else %}
-
-<div class="text-center mt-5">
-  <h4>No orders yet 😢</h4>
-  <a href="/" class="btn btn-primary mt-3">Order Now</a>
-</div>
-
-{% endif %} {% endblock %}
+{% endfor %} {% endif %} {% endblock %}
