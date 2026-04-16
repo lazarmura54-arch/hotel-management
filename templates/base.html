@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
   <head>
-    <title>LOCAL</title>
+    <title>LAZAR</title>
 
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
@@ -17,7 +17,7 @@
         font-family: Arial;
       }
 
-      /* 🔥 Top Navbar */
+      /* Navbar */
       .navbar-custom {
         background: linear-gradient(45deg, orange, pink);
         color: white;
@@ -28,14 +28,14 @@
       }
 
       .menu-btn {
-        font-size: 26px;
+        font-size: 24px;
         cursor: pointer;
         border: 2px solid white;
-        padding: 5px 12px;
+        padding: 5px 10px;
         border-radius: 8px;
       }
 
-      /* 🔥 Sidebar */
+      /* Sidebar */
       .sidebar {
         position: fixed;
         top: 0;
@@ -75,17 +75,40 @@
       .overlay.active {
         display: block;
       }
+
+      /* Floating Cart */
+      .floating-cart {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #ff6600;
+        color: white;
+        padding: 14px 18px;
+        border-radius: 50px;
+        font-size: 18px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        z-index: 9999;
+      }
+
+      @media (max-width: 768px) {
+        .floating-cart {
+          bottom: 15px;
+          right: 15px;
+          padding: 12px 14px;
+          font-size: 16px;
+        }
+      }
     </style>
   </head>
 
   <body>
-    <!-- 🔥 NAVBAR -->
+    <!-- NAVBAR -->
     <div class="navbar-custom">
       <div>🍔 LOCAL</div>
       <div class="menu-btn" onclick="toggleMenu()">☰</div>
     </div>
 
-    <!-- 🔥 SIDEBAR -->
+    <!-- SIDEBAR -->
     <div id="sidebar" class="sidebar">
       <a href="/">🏠 Home</a>
 
@@ -100,13 +123,18 @@
       {% endif %}
     </div>
 
-    <!-- 🔥 OVERLAY -->
+    <!-- OVERLAY -->
     <div id="overlay" class="overlay" onclick="toggleMenu()"></div>
 
-    <!-- 🔥 CONTENT -->
+    <!-- CONTENT -->
     <div class="container mt-4">{% block content %}{% endblock %}</div>
 
-    <!-- 🔥 SCRIPT -->
+    <!-- FLOATING CART -->
+    {% if session.get('cart') %}
+    <a href="/cart" class="floating-cart"> 🛒 {{ session['cart']|length }} </a>
+    {% endif %}
+
+    <!-- SCRIPT -->
     <script>
       function toggleMenu() {
         let sidebar = document.getElementById("sidebar");
