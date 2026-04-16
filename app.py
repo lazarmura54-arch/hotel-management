@@ -148,73 +148,69 @@ def logout():
 
 # ================= ORDER =================
 
-@app.route('/place_order', methods=['GET', 'POST'])
+@app.route('/place_order', methods=['POST'])
 def place_order():
 
     if 'user_id' not in session:
         return redirect('/login')
 
-    user = User.query.get(session['user_id'])
+    cart = session.get('cart')
 
-    if request.method == 'POST':
+    if not cart:
+        return "Cart is empty ❌"
 
-        # ================= SAVE USER ADDRESS =================
-        user.street = request.form['street']
-        user.village = request.form['village']
-        user.city = request.form['city']
-        user.state = request.form['state']
-        user.pincode = request.form['pincode']
-        user.mobile = request.form['mobile']
+    # ✅ Get form data safely
+    street = request.form.get('street')
+    village = request.form.get('village')
+    city = request.form.get('city')
+    state = request.form.get('state')
+    pincode = request.form.get('pincode')
+    mobile = request.form.get('mobile')
+    payment_method = request.form.get('payment')
 
-        db.session.commit()
+    # ✅ Combine address
+    full_address = f"{street}, {village}, {city}, {state} - {pincode}"
 
-        # ================= CART =================
-        cart = session.get('cart', {})   # ✅ dictionary
+    total_price = 0
 
-        total = 0
+    # ✅ Create Order
+    order = Order(
+        user_id=session['user_id'],
+        address=full_address,
+        mobile=mobile,
+        payment_method=payment_method,
+        status="Placed",
+        total_price=0
+    )
 
-        # ================= CREATE ORDER =================
-        full_address = f"{user.street}, {user.village}, {user.city}, {user.state} - {user.pincode}"
+    db.session.add(order)
+    db.session.commit()
 
-        order = Order(
-            user_id=user.id,
-            total=0,   # temporary
-            address=full_address,
-            payment="Cash on Delivery"
+    # ✅ Add items to order
+    for item_id, item in cart.items():
+
+        quantity = item.get('quantity', 1)
+        price = item.get('price', 0)
+
+        total_price += price * quantity
+
+        order_item = OrderItem(
+            order_id=order.id,
+            name=item['name'],
+            price=price,
+            quantity=quantity
         )
 
-        db.session.add(order)
-        db.session.commit()
+        db.session.add(order_item)
 
-        # ================= ADD ORDER ITEMS =================
-        for item_id, qty in cart.items():
+    # ✅ Update total
+    order.total_price = total_price
+    db.session.commit()
 
-            item = MenuItem.query.get(int(item_id))
+    # ✅ Clear cart
+    session['cart'] = {}
 
-            if item:
-                subtotal = item.price * qty
-                total += subtotal
-
-                db.session.add(OrderItem(
-                    order_id=order.id,
-                    item_name=item.name,
-                    price=item.price,
-                    quantity=qty   # ✅ IMPORTANT FIX
-                ))
-
-        # ================= UPDATE TOTAL =================
-        order.total = total
-        db.session.commit()
-
-        # ================= CLEAR CART =================
-        session['cart'] = {}
-        session['cart_count'] = 0
-
-        # ================= REDIRECT =================
-        return redirect(f'/order_success/{order.id}')
-
-    return render_template('place_order.html', user=user)
-
+    return redirect(f"/order_success/{order.id}")
 # ================= EXTRA =================
 
 @app.route('/profile')
