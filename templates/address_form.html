@@ -1,86 +1,56 @@
-{% extends "base.html" %}
-{% block title %}Address Form{% endblock %}
+{% extends "base.html" %} {% block content %}
 
-{% block head %}
-<style>
-    .form-container {
-        background: #ffffff;
-        padding: 30px;
-        max-width: 500px;
-        margin: 20px auto;
-        border-radius: 10px;
-        box-shadow: 0 0 15px rgba(0,0,0,0.1);
-    }
-    h2 { text-align: center; margin-bottom: 20px; }
-    label { display: block; margin-top: 15px; font-weight: bold; }
-    input[type="text"], textarea {
-        width: 100%;
-        padding: 10px;
-        margin-top: 5px;
-        border-radius: 5px;
-        border: 1px solid #ccc;
-        box-sizing: border-box;
-    }
-    input[readonly], textarea[readonly] {
-        background-color: #f9f9f9;
-        color: #555;
-    }
-    input[type="submit"] {
-        background-color: #007bff;
-        color: white;
-        padding: 12px;
-        margin-top: 20px;
-        border: none;
-        border-radius: 5px;
-        width: 100%;
-        font-size: 16px;
-        cursor: pointer;
-    }
-    input[type="submit"]:hover {
-        background-color: #0056b3;
-    }
-</style>
-{% endblock %}
+<h2 style="text-align: center">🚚 Delivery Details</h2>
 
-{% block content %}
-<div class="form-container">
-    <h2>Enter Delivery Details</h2>
+<div style="width: 80%; margin: auto; display: flex; gap: 30px">
+  <!-- FORM -->
+  <div
+    style="flex: 1; border: 1px solid #ddd; padding: 20px; border-radius: 10px"
+  >
+    <form method="POST">
+      Name:
+      <input
+        type="text"
+        name="fname"
+        value="{{ user.name or '' }}"
+        required
+      /><br /><br />
 
-    <form action="{{ url_for('address_form') }}" method="POST">
+      Mobile:
+      <input
+        type="text"
+        name="mobile"
+        value="{{ user.mobile or '' }}"
+        required
+      /><br /><br />
 
-        <!-- ✅ Full Name (Auto-fill optional) -->
-        <label for="fname">Full Name:</label>
-        <input type="text" id="fname" name="fname"
-               value="{{ current_user.name or '' }}" required>
+      Address:
+      <textarea name="address" required>{{ user.address or '' }}</textarea
+      ><br /><br />
 
-        <!-- ✅ Mobile -->
-        <label for="mobile">Mobile Number:</label>
-        <input type="text" id="mobile" name="mobile"
-               value="{{ current_user.mobile or '' }}" required>
-
-        <!-- ✅ Address (AUTO-FILL FIXED) -->
-        <label for="address">Address:</label>
-        <textarea id="address" name="address" rows="3" required>{{ current_user.address or '' }}</textarea>
-
-        <!-- ✅ Edit Link -->
-        <a href="/profile" style="display:block; margin-top:5px; color:blue;">
-            Edit Address
-        </a>
-
-        <!-- ✅ Items -->
-        <label for="items">Items:</label>
-        <textarea id="items" name="items" readonly rows="4">
-{{ items | join('\n') }}
-        </textarea>
-
-        <!-- ✅ Total -->
-        <label for="total">Total:</label>
-        <input type="text" id="total" name="total"
-               value="{{ "%.2f"|format(total|float) }}" readonly>
-
-        <!-- ✅ Submit -->
-        <input type="submit" value="Submit Order">
-
+      <button type="submit">Place Order</button>
     </form>
+  </div>
+
+  <!-- CART SUMMARY -->
+  <div
+    style="flex: 1; border: 1px solid #ddd; padding: 20px; border-radius: 10px"
+  >
+    <h3>🛒 Order Summary</h3>
+
+    {% for item in cart_items %}
+    <p>
+      {{ item.menu_item.name }} x {{ item.quantity }}
+      <span style="float: right">
+        ₹{{ item.menu_item.price * item.quantity }}
+      </span>
+    </p>
+    {% endfor %}
+
+    <hr />
+
+    <h4>Total: ₹{{ total }}</h4>
+  </div>
 </div>
+
 {% endblock %}

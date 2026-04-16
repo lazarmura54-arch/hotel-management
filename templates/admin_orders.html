@@ -1,0 +1,41 @@
+{% extends "base.html" %} {% block content %}
+
+<h3 class="fw-bold mb-4">Admin Orders</h3>
+
+<table class="table table-bordered">
+  <tr>
+    <th>ID</th>
+    <th>Items</th>
+    <th>Total</th>
+    <th>Status</th>
+    <th>Action</th>
+  </tr>
+
+  {% for o in orders %}
+  <tr>
+    <td>{{ o.id }}</td>
+    <td>{{ o.items }}</td>
+    <td>₹{{ o.total }}</td>
+    <td>
+      <span class="badge bg-warning">{{ o.status }}</span>
+    </td>
+    <td>
+      <a
+        href="/update_status/{{o.id}}/Preparing"
+        class="btn btn-sm btn-secondary"
+        >Preparing</a
+      >
+      <a
+        href="/update_status/{{o.id}}/On the way"
+        class="btn btn-sm btn-primary"
+        >On the way</a
+      >
+      <a href="/update_status/{{o.id}}/Delivered" class="btn btn-sm btn-success"
+        >Delivered</a
+      >
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+
+{% endblock %}

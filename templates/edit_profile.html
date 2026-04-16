@@ -1,0 +1,16 @@
+{% extends "base.html" %} {% block content %}
+
+<h3>Edit Address</h3>
+
+<form method="POST">
+  <input name="street" value="{{ user.street }}" class="form-control mb-2" />
+  <input name="village" value="{{ user.village }}" class="form-control mb-2" />
+  <input name="city" value="{{ user.city }}" class="form-control mb-2" />
+  <input name="state" value="{{ user.state }}" class="form-control mb-2" />
+  <input name="pincode" value="{{ user.pincode }}" class="form-control mb-2" />
+  <input name="mobile" value="{{ user.mobile }}" class="form-control mb-2" />
+
+  <button class="btn btn-success">Update</button>
+</form>
+
+{% endblock %}

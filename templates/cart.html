@@ -1,10 +1,27 @@
-<h1>Your Cart</h1>
-<ul>
-  {% for item in cart %}
-    <li>{{ item.name }} - ₹{{ item.price }}</li>
-  {% endfor %}
-</ul>
+{% extends "base.html" %} {% block content %}
 
-<h3>Total: ₹{{ total }}</h3>
+<h3 class="mb-4">🛒 Your Cart</h3>
 
-<a href="{{ url_for('address_form') }}">Proceed to Checkout</a>
+{% if items|length == 0 %}
+<div class="text-center">
+  <h4>Your cart is empty 😢</h4>
+  <a href="/" class="btn btn-custom mt-3">Browse Food</a>
+</div>
+{% else %} {% for i in items %}
+<div class="card p-3 mb-3">
+  <div class="d-flex justify-content-between">
+    <h5>{{ i.name }}</h5>
+    <h6>₹{{ i.total }}</h6>
+  </div>
+
+  <p>Qty: {{ i.qty }}</p>
+</div>
+{% endfor %}
+
+<h4>Total: ₹{{ total }}</h4>
+
+<p><strong>Payment:</strong> Cash on Delivery</p>
+
+<a href="/place_order" class="btn btn-success">Place Order</a>
+
+{% endif %} {% endblock %}

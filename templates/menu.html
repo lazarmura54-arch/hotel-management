@@ -1,0 +1,35 @@
+{% extends "base.html" %} {% block content %}
+
+<h2 class="mb-4">{{ hotel.name }} Menu</h2>
+
+<div class="row">
+  {% for item in items %}
+  <div class="col-lg-4 col-md-6 col-12 mb-4">
+    <div class="card h-100 shadow-sm">
+      <!-- IMAGE -->
+      <img
+        src="{{ url_for('static', filename='images/' + item.image) }}"
+        class="card-img-top food-img"
+      />
+
+      <div class="card-body">
+        <!-- NAME -->
+        <h5 class="mb-1">{{ item.name }}</h5>
+
+        <!-- ⭐ STATIC RATING -->
+        <p class="rating mb-1">⭐ 4.3 • 20 min</p>
+
+        <!-- PRICE -->
+        <h6 class="text-success mb-2">₹{{ item.price }}</h6>
+
+        <!-- ADD TO CART -->
+        <a href="/add_to_cart/{{ item.id }}" class="btn btn-custom w-100">
+          Add to Cart
+        </a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% endblock %}

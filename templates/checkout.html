@@ -1,0 +1,12 @@
+{% extends "base.html" %} {% block content %}
+
+<h3>Checkout</h3>
+
+<form method="POST">
+  <input name="address" class="form-control mb-2" placeholder="Address" />
+  <input name="phone" class="form-control mb-2" placeholder="Phone" />
+
+  <button class="btn btn-success w-100">Place Order</button>
+</form>
+
+{% endblock %}

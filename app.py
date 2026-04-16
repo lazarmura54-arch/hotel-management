@@ -1,130 +1,128 @@
-import os
-from flask import Flask, render_template, request, flash, redirect, url_for
+from flask import Flask, render_template, redirect, request, session, flash
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
-
-# =========================
-# APP CONFIG
-# =========================
+import os
 
 app = Flask(__name__)
+app.secret_key = "secret123"
 
-app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-secret')
-
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
-    'DATABASE_URL',
-    'sqlite:///local.db'
-)
-
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///database.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# ✅ IMPORTANT: CREATE TABLES (WORKS ON RENDER)
-with app.app_context():
-    db.create_all()
+# ================= MODELS =================
 
-# =========================
-# LOGIN SETUP
-# =========================
-
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login'
-
-# =========================
-# MODELS
-# =========================
-
-class User(db.Model, UserMixin):
-    __tablename__ = 'users'
-
+class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(200), nullable=False)
-
-    # PROFILE FIELDS
     name = db.Column(db.String(100))
-    mobile = db.Column(db.String(20))
-    address = db.Column(db.String(300))
+    email = db.Column(db.String(100))
+    password = db.Column(db.String(100))
 
-    orders = db.relationship('Order', backref='user', lazy=True)
+    # NEW FIELDS
+    street = db.Column(db.String(100))
+    village = db.Column(db.String(100))
+    city = db.Column(db.String(100))
+    state = db.Column(db.String(100))
+    pincode = db.Column(db.String(10))
+    mobile = db.Column(db.String(15))
+
+
+class Hotel(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100))
+    image = db.Column(db.String(100))
 
 
 class MenuItem(db.Model):
-    __tablename__ = 'menu_items'
-
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
-    price = db.Column(db.Float)
+    price = db.Column(db.Integer)
     image = db.Column(db.String(100))
-    hotel = db.Column(db.String(100))
+    hotel_id = db.Column(db.Integer, db.ForeignKey('hotel.id'))
+    rating = db.Column(db.Float, default=4.5)
 
 
 class Order(db.Model):
-    __tablename__ = 'orders'
-
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100))
-    mobile = db.Column(db.String(15))
-    address = db.Column(db.String(200))
-    items = db.Column(db.Text)
-    total = db.Column(db.Float)
-
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    user_id = db.Column(db.Integer)
+    total = db.Column(db.Integer)
+    address = db.Column(db.String(200))   # ✅ NEW
+    payment = db.Column(db.String(50), default="Cash on Delivery")
+    status = db.Column(db.String(50), default="Preparing")
 
 
-# =========================
-# USER LOADER
-# =========================
+class OrderItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer)
+    item_name = db.Column(db.String(100))
+    price = db.Column(db.Integer)
+    quantity = db.Column(db.Integer)
 
-@login_manager.user_loader
-def load_user(user_id):
-    return db.session.get(User, int(user_id))
 
-
-# =========================
-# ROUTES
-# =========================
+# ================= HOME =================
 
 @app.route('/')
 def home():
-    hotels = db.session.query(MenuItem.hotel).distinct().all()
-    hotel_names = sorted([h[0] for h in hotels])
-    return render_template('index.html', hotel_names=hotel_names)
+    hotels = Hotel.query.all()
+    return render_template('index.html', hotels=hotels)
 
 
-@app.route('/hotel/<hotel_name>')
-def hotel_page(hotel_name):
-    items = MenuItem.query.filter(MenuItem.hotel.ilike(f'%{hotel_name}%')).all()
-    return render_template('hotel_menu.html', items=items, hotel_name=hotel_name)
+@app.route('/hotel/<int:id>')
+def hotel_menu(id):
+    hotel = Hotel.query.get(id)
+    items = MenuItem.query.filter_by(hotel_id=id).all()
+    return render_template('menu.html', hotel=hotel, items=items)
 
 
-# =========================
-# AUTH
-# =========================
+# ================= CART =================
+
+@app.route('/add_to_cart/<int:id>')
+def add_to_cart(id):
+    cart = session.get('cart', {})
+
+    cart[str(id)] = cart.get(str(id), 0) + 1
+
+    session['cart'] = cart
+    session['cart_count'] = sum(cart.values())
+
+    flash("Item added to cart ✅")
+    return redirect(request.referrer or '/')
+
+
+@app.route('/cart')
+def cart():
+    cart = session.get('cart', {})
+    items = []
+    total = 0
+
+    for item_id, qty in cart.items():
+        item = MenuItem.query.get(int(item_id))
+        if item:
+            subtotal = item.price * qty
+            total += subtotal
+            items.append({
+                'name': item.name,
+                'qty': qty,
+                'total': subtotal
+            })
+
+    return render_template('cart.html', items=items, total=total)
+
+
+# ================= AUTH =================
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
-        username = request.form.get('username')
-        email = request.form.get('email')
-        password = request.form.get('password')
-
-        if User.query.filter_by(username=username).first():
-            flash('Username already exists', 'error')
-            return redirect(url_for('signup'))
-
-        hashed = generate_password_hash(password)
-        user = User(username=username, email=email, password_hash=hashed)
-
+        user = User(
+            name=request.form['name'],
+            email=request.form['email'],
+            password=request.form['password'],
+            mobile=request.form['mobile']   # ✅ keep this only
+        )
         db.session.add(user)
         db.session.commit()
-
-        flash('Signup successful!', 'success')
-        return redirect(url_for('login'))
+        return redirect('/login')
 
     return render_template('signup.html')
 
@@ -132,128 +130,222 @@ def signup():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        user = User.query.filter_by(username=request.form.get('username')).first()
+        user = User.query.filter_by(email=request.form['email']).first()
 
-        if not user or not check_password_hash(user.password_hash, request.form.get('password')):
-            flash('Invalid credentials', 'error')
-            return redirect(url_for('login'))
-
-        login_user(user)
-        return redirect(url_for('home'))
+        if user and user.password == request.form['password']:
+            session['user'] = user.name
+            session['user_id'] = user.id
+            return redirect('/')
 
     return render_template('login.html')
 
 
 @app.route('/logout')
-@login_required
 def logout():
-    logout_user()
-    return redirect(url_for('home'))
+    session.clear()
+    return redirect('/')
 
 
-# =========================
-# ADDRESS + ORDER
-# =========================
+# ================= ORDER =================
 
-@app.route('/address_form', methods=['GET', 'POST'])
-@login_required
-def address_form():
+@app.route('/place_order', methods=['GET', 'POST'])
+def place_order():
+
+    if 'user_id' not in session:
+        return redirect('/login')
+
+    user = User.query.get(session['user_id'])
+
     if request.method == 'POST':
-        name = request.form.get('fname')
-        mobile = request.form.get('mobile')
-        address = request.form.get('address')
-        items = request.form.get('items')
-        total = float(request.form.get('total'))
 
-        # SAVE PROFILE
-        current_user.name = name
-        current_user.mobile = mobile
-        current_user.address = address
+        # ================= SAVE USER ADDRESS =================
+        user.street = request.form['street']
+        user.village = request.form['village']
+        user.city = request.form['city']
+        user.state = request.form['state']
+        user.pincode = request.form['pincode']
+        user.mobile = request.form['mobile']
+
         db.session.commit()
 
-        # SAVE ORDER
+        # ================= CART =================
+        cart = session.get('cart', {})   # ✅ dictionary
+
+        total = 0
+
+        # ================= CREATE ORDER =================
+        full_address = f"{user.street}, {user.village}, {user.city}, {user.state} - {user.pincode}"
+
         order = Order(
-            name=name,
-            mobile=mobile,
-            address=address,
-            items=items,
-            total=total,
-            user_id=current_user.id
+            user_id=user.id,
+            total=0,   # temporary
+            address=full_address,
+            payment="Cash on Delivery"
         )
 
         db.session.add(order)
         db.session.commit()
 
-        return render_template('order_confirmation.html',
-                               name=name,
-                               phone=mobile,
-                               address=address,
-                               items=items,
-                               total=total)
+        # ================= ADD ORDER ITEMS =================
+        for item_id, qty in cart.items():
 
-    total = request.args.get('total', '0')
-    items = request.args.getlist('items')
+            item = MenuItem.query.get(int(item_id))
 
-    return render_template('address_form.html', total=total, items=items)
+            if item:
+                subtotal = item.price * qty
+                total += subtotal
 
+                db.session.add(OrderItem(
+                    order_id=order.id,
+                    item_name=item.name,
+                    price=item.price,
+                    quantity=qty   # ✅ IMPORTANT FIX
+                ))
 
-# =========================
-# PROFILE
-# =========================
+        # ================= UPDATE TOTAL =================
+        order.total = total
+        db.session.commit()
 
-@app.route('/profile', methods=['GET', 'POST'])
-@login_required
+        # ================= CLEAR CART =================
+        session['cart'] = {}
+        session['cart_count'] = 0
+
+        # ================= REDIRECT =================
+        return redirect(f'/order_success/{order.id}')
+
+    return render_template('place_order.html', user=user)
+
+# ================= EXTRA =================
+
+@app.route('/profile')
 def profile():
+    if 'user_id' not in session:
+        return redirect('/login')
+
+    user = User.query.get(session['user_id'])
+    return render_template('profile.html', user=user)
+
+
+@app.route('/edit_profile', methods=['GET', 'POST'])
+def edit_profile():
+
+    if 'user_id' not in session:
+        return redirect('/login')
+
+    user = User.query.get(session['user_id'])
+
     if request.method == 'POST':
-        current_user.name = request.form.get('name')
-        current_user.mobile = request.form.get('mobile')
-        current_user.address = request.form.get('address')
+        user.street = request.form['street']
+        user.village = request.form['village']
+        user.city = request.form['city']
+        user.state = request.form['state']
+        user.pincode = request.form['pincode']
+        user.mobile = request.form['mobile']
 
         db.session.commit()
-        flash('Profile updated!', 'success')
-        return redirect(url_for('profile'))
+        return redirect('/profile')
 
-    return render_template('profile.html')
+    return render_template('edit_profile.html', user=user)
 
-
-# =========================
-# ORDER HISTORY
-# =========================
 
 @app.route('/orders')
-@login_required
-def order_history():
-    orders = Order.query.filter_by(user_id=current_user.id)\
-                        .order_by(Order.id.desc()).all()
+def orders():
+    if 'user_id' not in session:
+        return redirect('/login')
 
-    return render_template('orders.html', orders=orders)
+    orders = Order.query.filter_by(user_id=session['user_id']).all()
+
+    order_data = []
+    for o in orders:
+        items = OrderItem.query.filter_by(order_id=o.id).all()
+        order_data.append({"order": o, "items": items})
+
+    return render_template('orders.html', order_data=order_data)
 
 
-@app.route('/contact_us')
+
+@app.route('/contact')
 def contact():
-    return render_template('contact_us.html')
-
-@app.route('/init_db')
-def init_db():
-    db.create_all()
-
-    # insert sample data if empty
-    if not MenuItem.query.first():
-        items = [
-            MenuItem(name="Biryani", price=150, hotel="Lazar Hotel"),
-            MenuItem(name="Dosa", price=50, hotel="Lazar Hotel"),
-            MenuItem(name="Chicken Curry", price=180, hotel="Nani Hotel"),
-            MenuItem(name="Fried Rice", price=120, hotel="Nani Hotel"),
-        ]
-        db.session.add_all(items)
-        db.session.commit()
-
-    return "Database initialized!"
+    return render_template('contact.html')
 
 
-# =========================
-# RUN
-# =========================
+@app.route('/order_success/<int:order_id>')
+def order_success(order_id):
+    order = Order.query.get(order_id)
+    items = OrderItem.query.filter_by(order_id=order_id).all()
+    return render_template('order_success.html', order=order, items=items)
+
+
+# ================= RUN =================
 
 if __name__ == '__main__':
+    with app.app_context():
+
+        db.create_all()
+
+        if Hotel.query.count() == 0:
+
+            # 🏨 CREATE HOTELS FIRST
+            h1 = Hotel(name="Bhaskar Hotel", image="hotel2.jpg")
+            h2 = Hotel(name="Lazar Hotel", image="hotel1.jpg")
+            h3 = Hotel(name="Mariyamma Hotel", image="mariyamma.jpg")
+            h4 = Hotel(name="Nani Hotel", image="nani.jpg")
+
+            db.session.add_all([h1, h2, h3, h4])
+            db.session.commit()
+
+            # ================= ITEMS =================
+            items = [
+
+                # 🏨 Bhaskar Hotel (10 items)
+                MenuItem(name="Chicken Biryani", price=150, image="chicken.jpg", hotel_id=h1.id),
+                MenuItem(name="Chicken Fry", price=120, image="chicken_fry.jpg", hotel_id=h1.id),
+                MenuItem(name="Egg Biryani", price=100, image="egg.jpg", hotel_id=h1.id),
+                MenuItem(name="Egg Curry", price=90, image="egg1.jpg", hotel_id=h1.id),
+                MenuItem(name="Veg Meals", price=80, image="meals.jpg", hotel_id=h1.id),
+                MenuItem(name="Curd Rice", price=60, image="curd.jpg", hotel_id=h1.id),
+                MenuItem(name="Fried Rice", price=110, image="fried_rice.jpg", hotel_id=h1.id),
+                MenuItem(name="Gobi Rice", price=100, image="gobi_rice.jpg", hotel_id=h1.id),
+                MenuItem(name="Fish Fry", price=140, image="fish.jpg", hotel_id=h1.id),
+
+                # 🏨 Lazar Hotel (10 items)
+                MenuItem(name="Mutton Biryani", price=250, image="mutton.jpg", hotel_id=h2.id),
+                MenuItem(name="Mutton Curry", price=220, image="mutton1.jpg", hotel_id=h2.id),
+                MenuItem(name="Chicken Biryani", price=180, image="chicken1.jpg", hotel_id=h2.id),
+                MenuItem(name="Chicken Fry", price=130, image="chicken3.jpg", hotel_id=h2.id),
+                MenuItem(name="Egg Biryani", price=120, image="egg2.jpg", hotel_id=h2.id),
+                MenuItem(name="Fish Fry", price=170, image="fish3.jpg", hotel_id=h2.id),
+                MenuItem(name="Veg Meals", price=90, image="meals1.jpg", hotel_id=h2.id),
+                MenuItem(name="Curd Rice", price=70, image="curd1.jpg", hotel_id=h2.id),
+                MenuItem(name="Fried Rice", price=130, image="fried_rice.jpg", hotel_id=h2.id),
+
+
+                # 🏨 Mariyamma Hotel (10 items)
+                MenuItem(name="Veg Biryani", price=100, image="veg.jpg", hotel_id=h3.id),
+                MenuItem(name="Egg Biryani", price=90, image="egg.jpg", hotel_id=h3.id),
+                MenuItem(name="Mutton Biryani", price=160, image="mutton3.jpg", hotel_id=h3.id),
+                MenuItem(name="Chicken Fry Biryani", price=260, image="chicken11.jpg", hotel_id=h3.id),
+                MenuItem(name="Veg Meals", price=70, image="meals2.jpg", hotel_id=h3.id),
+                MenuItem(name="Curd Rice", price=80, image="curd.jpg", hotel_id=h3.id),
+                MenuItem(name="Fish Curry", price=150, image="fish4.jpg", hotel_id=h3.id),
+                MenuItem(name="Egg Curry", price=80, image="egg3.jpg", hotel_id=h3.id),
+                MenuItem(name="Fried Rice", price=120, image="fried_rice.jpg", hotel_id=h3.id),
+
+
+                # 🏨 Nani Hotel (10 items)
+                MenuItem(name="Chicken Biryani", price=180, image="chicken.jpg", hotel_id=h4.id),
+                MenuItem(name="Egg Biryani", price=190, image="egg1.jpg", hotel_id=h4.id),
+                MenuItem(name="Mutton Biryani", price=260, image="mutton.jpg", hotel_id=h4.id),
+                MenuItem(name="Fish Biryani", price=150, image="fish.jpg", hotel_id=h4.id),
+                MenuItem(name="Veg Meals", price=90, image="meals3.jpg", hotel_id=h4.id),
+                MenuItem(name="Curd Rice", price=50, image="curd1.jpg", hotel_id=h4.id),
+                MenuItem(name="Chicken Fry", price=140, image="chicken_fry.jpg", hotel_id=h4.id),
+                MenuItem(name="Fish Fry", price=160, image="fish2.jpg", hotel_id=h4.id),
+                MenuItem(name="Egg Curry", price=90, image="egg2.jpg", hotel_id=h4.id),
+
+            ]
+
+            db.session.add_all(items)
+            db.session.commit()
+
     app.run(debug=True)

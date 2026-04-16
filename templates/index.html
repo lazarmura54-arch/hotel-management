@@ -1,69 +1,28 @@
-{% extends "base.html" %}
-{% block title %}LOCAL Food Delivery{% endblock %}
+{% extends "base.html" %} {% block content %}
 
-{% block head %}
-<style>
-    header {
-      background-color: #ffc107;
-      padding: 20px;
-      text-align: center;
-      font-size: 25px;
-      color: black;
-      border-bottom: 4px solid #e0a800;
-    }
-    header h1 {
-        margin: 0;
-    }
-    header p {
-        margin: 5px 0 0;
-        font-size: 1rem;
-    }
-    h2 {
-      text-align: center;
-      margin-top: 40px;
-      color: #333;
-    }
-    .hotel-links {
-      text-align: center;
-      margin: 20px;
-    }
-    .hotel-links a {
-      display: block;
-      margin: 15px auto;
-      font-size: 24px;
-      padding: 20px;
-      background-color: #ffffff;
-      text-decoration: none;
-      color: black;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      width: 90%;
-      max-width: 400px;
-      transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    .hotel-links a:hover {
-      background-color: #fff3cd;
-      transform: translateY(-3px);
-      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-    }
-</style>
-{% endblock %}
+<h2 class="mb-4">🍴 Restaurants</h2>
 
-{% block content %}
-<header>
-  <h1>LOCAL</h1>
-  <p>Your Favorite Local Restaurants, Delivered.</p>
-</header>
+<div class="row">
+  {% for h in hotels %}
+  <div class="col-md-4 col-sm-6 mb-4">
+    <div class="card">
+      <img
+        src="{{ url_for('static', filename='images/' + h.image) }}"
+        height="200"
+      />
 
-<h2>Choose a Restaurant</h2>
+      <div class="card-body">
+        <h5>{{ h.name }}</h5>
 
-<div class="hotel-links">
-  <!-- Dynamically generate links for each hotel in the database -->
-  {% for name in hotel_names %}
-    <a href="{{ url_for('hotel_page', hotel_name=name) }}">{{ name | upper }} HOTEL</a>
-  {% else %}
-    <p>No hotels are currently available. Please check back later.</p>
+        <p class="rating">⭐ 4.2 • Free Delivery</p>
+
+        <a href="/hotel/{{ h.id }}" class="btn btn-custom w-100 mt-2">
+          View Menu
+        </a>
+      </div>
+    </div>
+  </div>
   {% endfor %}
 </div>
+
 {% endblock %}
