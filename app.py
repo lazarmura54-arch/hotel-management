@@ -5,11 +5,13 @@ import os
 app = Flask(__name__)
 app.secret_key = "secret123"
 
-# DATABASE CONFIG
 db_url = os.getenv("DATABASE_URL")
 
 if db_url:
     db_url = db_url.replace("postgres://", "postgresql://")
+
+    # ✅ THIS IS THE IMPORTANT LINE
+    db_url = db_url.replace("postgresql://", "postgresql+psycopg://")
 else:
     db_url = "sqlite:///database.db"
 
