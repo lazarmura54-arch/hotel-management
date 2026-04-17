@@ -128,29 +128,6 @@ def logout():
 
 # ================= CART =================
 
-@app.route('/add_to_cart/<int:item_id>')
-def add_to_cart(item_id):
-    if 'user_id' not in session:
-        return redirect('/login')
-
-    cart_item = Cart.query.filter_by(
-        user_id=session['user_id'],
-        item_id=item_id
-    ).first()
-
-    if cart_item:
-        cart_item.quantity += 1
-    else:
-        db.session.add(Cart(
-            user_id=session['user_id'],
-            item_id=item_id,
-            quantity=1
-        ))
-
-    db.session.commit()
-    return redirect(request.referrer or '/')
-
-
 @app.route('/cart')
 def cart():
     if 'user_id' not in session:
@@ -178,15 +155,72 @@ def cart():
     return render_template('cart.html', items=items, total=total)
 
 
-@app.route('/remove_from_cart/<int:item_id>')
-def remove_from_cart(item_id):
-    Cart.query.filter_by(
+@app.route('/increase/<int:item_id>')
+def increase(item_id):
+    if 'user_id' not in session:
+        return redirect('/login')
+
+    cart_item = Cart.query.filter_by(
         user_id=session['user_id'],
         item_id=item_id
-    ).delete()
-    db.session.commit()
-    return redirect('/cart')
+    ).first()
 
+    if cart_item:
+        cart_item.quantity += 1
+        db.session.commit()
+
+    return redirect(request.referrer or '/cart')
+
+
+@app.route('/decrease/<int:item_id>')
+def decrease(item_id):
+    if 'user_id' not in session:
+        return redirect('/login')
+
+    cart_item = Cart.query.filter_by(
+        user_id=session['user_id'],
+        item_id=item_id
+    ).first()
+
+    if cart_item:
+        if cart_item.quantity > 1:
+            cart_item.quantity -= 1
+        else:
+            db.session.delete(cart_item)
+
+        db.session.commit()
+
+    return redirect(request.referrer or '/cart')
+
+# ================= ADD TO CART =================
+
+@app.route('/add_to_cart/<int:item_id>')
+def add_to_cart(item_id):
+    if 'user_id' not in session:
+        return redirect('/login')
+
+    # check item exists
+    item = db.session.get(MenuItem, item_id)
+    if not item:
+        return "Item not found", 404
+
+    cart_item = Cart.query.filter_by(
+        user_id=session['user_id'],
+        item_id=item_id
+    ).first()
+
+    if cart_item:
+        cart_item.quantity += 1
+    else:
+        db.session.add(Cart(
+            user_id=session['user_id'],
+            item_id=item_id,
+            quantity=1
+        ))
+
+    db.session.commit()
+
+    return redirect(request.referrer or '/')
 
 @app.route('/clear_cart')
 def clear_cart():

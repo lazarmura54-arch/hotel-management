@@ -3,73 +3,117 @@
 <h3 class="mb-4">🛒 Your Cart</h3>
 
 {% if items|length == 0 %}
-<div class="text-center">
+<div class="text-center mt-5">
   <h4>Your cart is empty 😢</h4>
   <a href="/" class="btn btn-custom mt-3">Browse Food</a>
 </div>
 
-{% else %} {% for i in items %}
-<div class="card p-3 mb-3">
-  <div class="d-flex justify-content-between">
-    <h5>{{ i.name }}</h5>
-    <h6>₹{{ i.total }}</h6>
+{% else %}
+
+<!-- ITEMS -->
+{% for i in items %}
+<div class="card p-3 mb-3 shadow-sm">
+  <div class="d-flex justify-content-between align-items-center flex-wrap">
+    <!-- LEFT: NAME + PRICE -->
+    <div>
+      <h5>{{ i.name }}</h5>
+      <p class="text-muted mb-1">₹{{ i.price }}</p>
+    </div>
+
+    <!-- CENTER: QUANTITY CONTROLS -->
+    <div class="d-flex align-items-center gap-2">
+      <!-- DECREASE -->
+      {% if i.qty > 1 %}
+      <a href="/decrease/{{ i.id }}" class="btn btn-danger btn-sm">➖</a>
+      {% else %}
+      <a href="/remove_from_cart/{{ i.id }}" class="btn btn-danger btn-sm"
+        >❌</a
+      >
+      {% endif %}
+
+      <!-- QTY -->
+      <span class="fw-bold">{{ i.qty }}</span>
+
+      <!-- INCREASE -->
+      <a href="/increase/{{ i.id }}" class="btn btn-success btn-sm">➕</a>
+    </div>
+
+    <!-- RIGHT: TOTAL -->
+    <div>
+      <h6 class="text-success">₹{{ i.total }}</h6>
+    </div>
   </div>
-  <p>Qty: {{ i.qty }}</p>
 </div>
 {% endfor %}
 
-<h4>Total: ₹{{ total }}</h4>
+<!-- TOTAL -->
+<div class="card p-3 mb-3 shadow-sm">
+  <h4>Total: ₹{{ total }}</h4>
+  <p><strong>Payment:</strong> Cash on Delivery</p>
+</div>
 
-<p><strong>Payment:</strong> Cash on Delivery</p>
+<!-- ADDRESS FORM -->
+<div class="card p-3 shadow-sm">
+  <h5 class="mb-3">📍 Delivery Address</h5>
 
-<!-- ✅ FIX: FORM instead of link -->
-<form method="POST" action="/place_order">
-  <input
-    type="text"
-    name="street"
-    class="form-control mb-2"
-    placeholder="Street"
-    required
-  />
-  <input
-    type="text"
-    name="village"
-    class="form-control mb-2"
-    placeholder="Village"
-    required
-  />
-  <input
-    type="text"
-    name="city"
-    class="form-control mb-2"
-    placeholder="City"
-    required
-  />
-  <input
-    type="text"
-    name="state"
-    class="form-control mb-2"
-    placeholder="State"
-    required
-  />
-  <input
-    type="text"
-    name="pincode"
-    class="form-control mb-2"
-    placeholder="Pincode"
-    required
-  />
-  <input
-    type="text"
-    name="mobile"
-    class="form-control mb-2"
-    placeholder="Mobile Number"
-    required
-  />
+  <form method="POST" action="/place_order">
+    <input
+      type="text"
+      name="street"
+      class="form-control mb-2"
+      placeholder="Street"
+      required
+    />
 
-  <button type="submit" class="btn btn-success w-100 mt-2">
-    Place Order ✅
-  </button>
-</form>
+    <input
+      type="text"
+      name="village"
+      class="form-control mb-2"
+      placeholder="Village"
+      required
+    />
+
+    <input
+      type="text"
+      name="city"
+      class="form-control mb-2"
+      placeholder="City"
+      required
+    />
+
+    <input
+      type="text"
+      name="state"
+      class="form-control mb-2"
+      placeholder="State"
+      required
+    />
+
+    <input
+      type="text"
+      name="pincode"
+      class="form-control mb-2"
+      placeholder="Pincode"
+      required
+    />
+
+    <input
+      type="text"
+      name="mobile"
+      class="form-control mb-2"
+      placeholder="Mobile Number"
+      required
+    />
+
+    <button type="submit" class="btn btn-success w-100 mt-2">
+      Place Order ✅
+    </button>
+  </form>
+</div>
+
+<!-- CLEAR CART -->
+<div class="text-end mt-3">
+  <a href="/clear_cart" class="btn btn-outline-danger"> 🗑 Clear Cart </a>
+</div>
 
 {% endif %} {% endblock %}
