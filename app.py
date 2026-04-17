@@ -1,19 +1,20 @@
-from flask import Flask, render_template, redirect, request, session, flash
+from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 import os
 
 app = Flask(__name__)
 app.secret_key = "secret123"
 
-# ================= DATABASE =================
-
+# DATABASE CONFIG
 db_url = os.getenv("DATABASE_URL")
 
 if db_url:
     db_url = db_url.replace("postgres://", "postgresql://")
+else:
+    db_url = "sqlite:///database.db"
 
-app.config['SQLALCHEMY_DATABASE_URI'] = db_url or 'sqlite:///database.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config["SQLALCHEMY_DATABASE_URI"] = db_url
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 
@@ -66,11 +67,10 @@ class OrderItem(db.Model):
 # ================= INIT DB (IMPORTANT FOR RENDER) =================
 
 with app.app_context():
-    try:
-        db.create_all()
+    db.create_all()
 
-        # ✅ Safe check (no crash)
-        if not Hotel.query.first():
+    try:
+        if Hotel.query.count() == 0:
             h1 = Hotel(name="Bhaskar Hotel", image="hotel2.jpg")
             h2 = Hotel(name="Lazar Hotel", image="hotel1.jpg")
 
@@ -91,7 +91,7 @@ with app.app_context():
             db.session.commit()
 
     except Exception as e:
-        print("DB Init Error:", e)
+        print("DB INIT ERROR:", e)
 # ================= ROUTES =================
 
 @app.route('/')
