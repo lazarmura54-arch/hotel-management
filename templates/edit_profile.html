@@ -1,16 +1,79 @@
 {% extends "base.html" %} {% block content %}
 
-<h3>Edit Address</h3>
+<div class="container mt-5">
+  <div class="card p-4 shadow">
+    <h3>✏️ Edit Profile</h3>
+    <hr />
 
-<form method="POST">
-  <input name="street" value="{{ user.street }}" class="form-control mb-2" />
-  <input name="village" value="{{ user.village }}" class="form-control mb-2" />
-  <input name="city" value="{{ user.city }}" class="form-control mb-2" />
-  <input name="state" value="{{ user.state }}" class="form-control mb-2" />
-  <input name="pincode" value="{{ user.pincode }}" class="form-control mb-2" />
-  <input name="mobile" value="{{ user.mobile }}" class="form-control mb-2" />
+    <form method="POST">
+      <!-- NAME -->
+      <label>Name</label>
+      <input
+        type="text"
+        name="name"
+        value="{{ user.name }}"
+        class="form-control mb-2"
+        required
+      />
 
-  <button class="btn btn-success">Update</button>
-</form>
+      <!-- MOBILE -->
+      <label>Mobile</label>
+      <input
+        type="text"
+        name="mobile"
+        value="{{ user.mobile }}"
+        class="form-control mb-2"
+      />
+
+      <!-- ADDRESS -->
+      <h5 class="mt-3">📍 Address</h5>
+
+      <input
+        type="text"
+        name="street"
+        placeholder="Street"
+        value="{{ user.street or '' }}"
+        class="form-control mb-2"
+      />
+
+      <input
+        type="text"
+        name="village"
+        placeholder="Village"
+        value="{{ user.village or '' }}"
+        class="form-control mb-2"
+      />
+
+      <input
+        type="text"
+        name="city"
+        placeholder="City"
+        value="{{ user.city or '' }}"
+        class="form-control mb-2"
+      />
+
+      <input
+        type="text"
+        name="state"
+        placeholder="State"
+        value="{{ user.state or '' }}"
+        class="form-control mb-2"
+      />
+
+      <input
+        type="text"
+        name="pincode"
+        placeholder="Pincode"
+        value="{{ user.pincode or '' }}"
+        class="form-control mb-2"
+      />
+
+      <!-- BUTTON -->
+      <button type="submit" class="btn btn-success w-100">
+        Update Profile
+      </button>
+    </form>
+  </div>
+</div>
 
 {% endblock %}

@@ -1,22 +1,20 @@
-from flask import Flask, render_template, request, redirect, session, flash
+from flask import Flask, render_template, request, redirect, session
 from flask_sqlalchemy import SQLAlchemy
-import os
 
 app = Flask(__name__)
 app.secret_key = "secret123"
 
-db_url = os.getenv("DATABASE_URL")
+# ================= DATABASE (RENDER POSTGRESQL) =================
 
-if db_url:
-    db_url = db_url.replace("postgres://", "postgresql://")
+DATABASE_URL = "postgresql://hotel_db54_user:6PGCftbCrnCYYBSDiJSI9gycs96u5fyV@dpg-d7gpk5reo5us739ie3og-a.oregon-postgres.render.com/hotel_db54"
 
-    # ✅ THIS IS THE IMPORTANT LINE
-    db_url = db_url.replace("postgresql://", "postgresql+psycopg://")
-else:
-    db_url = "sqlite:///database.db"
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 
-app.config["SQLALCHEMY_DATABASE_URI"] = db_url
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    "pool_pre_ping": True,   # ✅ reconnect if connection is dead
+    "pool_recycle": 280      # ✅ refresh connection before timeout
+}
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
@@ -25,14 +23,15 @@ db = SQLAlchemy(app)
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
-    email = db.Column(db.String(100))
+    email = db.Column(db.String(100), unique=True)
     password = db.Column(db.String(100))
-    street = db.Column(db.String(100))
+
+    mobile = db.Column(db.String(20))
+    street = db.Column(db.String(200))
     village = db.Column(db.String(100))
     city = db.Column(db.String(100))
     state = db.Column(db.String(100))
     pincode = db.Column(db.String(10))
-    mobile = db.Column(db.String(15))
 
 
 class Hotel(db.Model):
@@ -47,15 +46,21 @@ class MenuItem(db.Model):
     price = db.Column(db.Integer)
     image = db.Column(db.String(100))
     hotel_id = db.Column(db.Integer)
-    rating = db.Column(db.Float, default=4.5)
 
 
+class Cart(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer)
+    item_id = db.Column(db.Integer)
+    quantity = db.Column(db.Integer, default=1)
+
+
+# ✅ ORDER TABLES
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer)
+    address = db.Column(db.String(300))
     total = db.Column(db.Integer)
-    address = db.Column(db.String(200))
-    payment = db.Column(db.String(50), default="Cash on Delivery")
     status = db.Column(db.String(50), default="Preparing")
 
 
@@ -66,35 +71,8 @@ class OrderItem(db.Model):
     price = db.Column(db.Integer)
     quantity = db.Column(db.Integer)
 
-# ================= INIT DB (IMPORTANT FOR RENDER) =================
 
-with app.app_context():
-    db.create_all()
-
-    try:
-        if Hotel.query.count() == 0:
-            h1 = Hotel(name="Bhaskar Hotel", image="hotel2.jpg")
-            h2 = Hotel(name="Lazar Hotel", image="hotel1.jpg")
-
-            db.session.add_all([h1, h2])
-            db.session.commit()
-
-            items = [
-                MenuItem(name="Chicken Biryani", price=150, image="chicken.jpg", hotel_id=h1.id),
-                MenuItem(name="Chicken Fry", price=120, image="chicken_fry.jpg", hotel_id=h1.id),
-                MenuItem(name="Veg Meals", price=80, image="meals.jpg", hotel_id=h1.id),
-
-                MenuItem(name="Mutton Biryani", price=250, image="mutton.jpg", hotel_id=h2.id),
-                MenuItem(name="Fish Fry", price=170, image="fish.jpg", hotel_id=h2.id),
-                MenuItem(name="Fried Rice", price=130, image="fried_rice.jpg", hotel_id=h2.id),
-            ]
-
-            db.session.add_all(items)
-            db.session.commit()
-
-    except Exception as e:
-        print("DB INIT ERROR:", e)
-# ================= ROUTES =================
+# ================= HOME =================
 
 @app.route('/')
 def home():
@@ -104,36 +82,9 @@ def home():
 
 @app.route('/hotel/<int:id>')
 def hotel_menu(id):
-    hotel = Hotel.query.get(id)
+    hotel = db.session.get(Hotel, id)
     items = MenuItem.query.filter_by(hotel_id=id).all()
     return render_template('menu.html', hotel=hotel, items=items)
-
-
-# ================= CART =================
-
-@app.route('/add_to_cart/<int:id>')
-def add_to_cart(id):
-    cart = session.get('cart', {})
-    cart[str(id)] = cart.get(str(id), 0) + 1
-    session['cart'] = cart
-    session['cart_count'] = sum(cart.values())
-    return redirect(request.referrer or '/')
-
-
-@app.route('/cart')
-def cart():
-    cart = session.get('cart', {})
-    items = []
-    total = 0
-
-    for item_id, qty in cart.items():
-        item = MenuItem.query.get(int(item_id))
-        if item:
-            subtotal = item.price * qty
-            total += subtotal
-            items.append({'name': item.name, 'qty': qty, 'total': subtotal})
-
-    return render_template('cart.html', items=items, total=total)
 
 
 # ================= AUTH =================
@@ -157,11 +108,15 @@ def signup():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        user = User.query.filter_by(email=request.form['email']).first()
-        if user and user.password == request.form['password']:
-            session['user'] = user.name
+        user = User.query.filter_by(
+            email=request.form['email'],
+            password=request.form['password']
+        ).first()
+
+        if user:
             session['user_id'] = user.id
             return redirect('/')
+
     return render_template('login.html')
 
 
@@ -171,58 +126,116 @@ def logout():
     return redirect('/')
 
 
-# ================= ORDER =================
+# ================= CART =================
+
+@app.route('/add_to_cart/<int:item_id>')
+def add_to_cart(item_id):
+    if 'user_id' not in session:
+        return redirect('/login')
+
+    cart_item = Cart.query.filter_by(
+        user_id=session['user_id'],
+        item_id=item_id
+    ).first()
+
+    if cart_item:
+        cart_item.quantity += 1
+    else:
+        db.session.add(Cart(
+            user_id=session['user_id'],
+            item_id=item_id,
+            quantity=1
+        ))
+
+    db.session.commit()
+    return redirect(request.referrer or '/')
+
+
+@app.route('/cart')
+def cart():
+    if 'user_id' not in session:
+        return redirect('/login')
+
+    cart_items = Cart.query.filter_by(user_id=session['user_id']).all()
+
+    items = []
+    total = 0
+
+    for c in cart_items:
+        item = db.session.get(MenuItem, c.item_id)
+        subtotal = item.price * c.quantity
+
+        items.append({
+            "id": item.id,
+            "name": item.name,
+            "price": item.price,
+            "qty": c.quantity,
+            "total": subtotal
+        })
+
+        total += subtotal
+
+    return render_template('cart.html', items=items, total=total)
+
+
+@app.route('/remove_from_cart/<int:item_id>')
+def remove_from_cart(item_id):
+    Cart.query.filter_by(
+        user_id=session['user_id'],
+        item_id=item_id
+    ).delete()
+    db.session.commit()
+    return redirect('/cart')
+
+
+@app.route('/clear_cart')
+def clear_cart():
+    Cart.query.filter_by(user_id=session['user_id']).delete()
+    db.session.commit()
+    return redirect('/cart')
+
+
+# ================= PLACE ORDER =================
 
 @app.route('/place_order', methods=['POST'])
 def place_order():
     if 'user_id' not in session:
         return redirect('/login')
 
-    cart = session.get('cart')
-    if not cart:
-        return "Cart is empty ❌"
+    cart_items = Cart.query.filter_by(user_id=session['user_id']).all()
 
-    street = request.form.get('street')
-    village = request.form.get('village')
-    city = request.form.get('city')
-    state = request.form.get('state')
-    pincode = request.form.get('pincode')
+    total = 0
+    for c in cart_items:
+        item = db.session.get(MenuItem, c.item_id)
+        total += item.price * c.quantity
 
-    full_address = f"{street}, {village}, {city}, {state} - {pincode}"
+    address = f"{request.form['street']}, {request.form['city']}"
 
     order = Order(
         user_id=session['user_id'],
-        address=full_address,
-        status="Placed",
-        total=0
+        address=address,
+        total=total
     )
-
     db.session.add(order)
     db.session.commit()
 
-    total_price = 0
+    for c in cart_items:
+        item = db.session.get(MenuItem, c.item_id)
 
-    for item_id, qty in cart.items():
-        item = MenuItem.query.get(int(item_id))
-        if item:
-            total_price += item.price * qty
+        db.session.add(OrderItem(
+            order_id=order.id,
+            item_name=item.name,
+            price=item.price,
+            quantity=c.quantity
+        ))
 
-            order_item = OrderItem(
-                order_id=order.id,
-                item_name=item.name,
-                price=item.price,
-                quantity=qty
-            )
-            db.session.add(order_item)
-
-    order.total = total_price
+    Cart.query.filter_by(user_id=session['user_id']).delete()
     db.session.commit()
 
-    session['cart'] = {}
-    session['cart_count'] = 0
+    return redirect(f'/order_success/{order.id}')
 
-    return redirect(f"/order_success/{order.id}")
 
+# ================= ORDERS =================
 
 @app.route('/orders')
 def orders():
@@ -230,21 +243,100 @@ def orders():
         return redirect('/login')
 
     orders = Order.query.filter_by(user_id=session['user_id']).all()
-    order_data = []
 
+    data = []
     for o in orders:
         items = OrderItem.query.filter_by(order_id=o.id).all()
-        order_data.append({"order": o, "items": items})
+        data.append({"order": o, "items": items})
 
-    return render_template('orders.html', order_data=order_data)
+    return render_template('orders.html', order_data=data)
+
+
+@app.context_processor
+def inject_cart_count():
+    if 'user_id' in session:
+        count = db.session.query(db.func.sum(Cart.quantity))\
+            .filter_by(user_id=session['user_id']).scalar()
+        return dict(cart_count=count or 0)
+    return dict(cart_count=0)
+
+
+@app.route('/profile')
+def profile():
+    if 'user_id' not in session:
+        return redirect('/login')
+
+    user = db.session.get(User, session['user_id'])
+    return render_template('profile.html', user=user)
+
+
+@app.route('/edit_profile', methods=['GET', 'POST'])
+def edit_profile():
+    if 'user_id' not in session:
+        return redirect('/login')
+
+    user = db.session.get(User, session['user_id'])
+
+    if request.method == 'POST':
+        user.name = request.form['name']
+        user.mobile = request.form['mobile']
+        user.street = request.form['street']
+        user.village = request.form['village']
+        user.city = request.form['city']
+        user.state = request.form['state']
+        user.pincode = request.form['pincode']
+
+        db.session.commit()
+        return redirect('/profile')
+
+    return render_template('edit_profile.html', user=user)
+
+
+@app.route('/contact')
+def contact():
+    return render_template('contact.html')
+
+
+# ================= SEARCH =================
+
+@app.route('/search')
+def search():
+    query = request.args.get('q')
+
+    items = MenuItem.query.filter(
+        MenuItem.name.ilike(f"%{query}%")
+    ).all()
+
+    return render_template('search.html', items=items, query=query)
+
+
+# ================= ORDER TRACKING =================
+
+@app.route('/track/<int:order_id>')
+def track(order_id):
+    order = db.session.get(Order, order_id)
+
+    if not order:
+        return "Order not found", 404
+
+    return render_template('track.html', order=order)
+
+
 
 
 @app.route('/order_success/<int:order_id>')
 def order_success(order_id):
-    order = Order.query.get(order_id)
+    order = db.session.get(Order, order_id)
+
     items = OrderItem.query.filter_by(order_id=order_id).all()
+
     return render_template('order_success.html', order=order, items=items)
 
+
+# ================= INIT =================
+
+with app.app_context():
+    db.create_all()
 
 # ================= RUN =================
 
