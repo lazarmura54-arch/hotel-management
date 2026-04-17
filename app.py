@@ -66,28 +66,32 @@ class OrderItem(db.Model):
 # ================= INIT DB (IMPORTANT FOR RENDER) =================
 
 with app.app_context():
-    db.create_all()
+    try:
+        db.create_all()
 
-    if Hotel.query.count() == 0:
-        h1 = Hotel(name="Bhaskar Hotel", image="hotel2.jpg")
-        h2 = Hotel(name="Lazar Hotel", image="hotel1.jpg")
+        # ✅ Safe check (no crash)
+        if not Hotel.query.first():
+            h1 = Hotel(name="Bhaskar Hotel", image="hotel2.jpg")
+            h2 = Hotel(name="Lazar Hotel", image="hotel1.jpg")
 
-        db.session.add_all([h1, h2])
-        db.session.commit()
+            db.session.add_all([h1, h2])
+            db.session.commit()
 
-        items = [
-            MenuItem(name="Chicken Biryani", price=150, image="chicken.jpg", hotel_id=h1.id),
-            MenuItem(name="Chicken Fry", price=120, image="chicken_fry.jpg", hotel_id=h1.id),
-            MenuItem(name="Veg Meals", price=80, image="meals.jpg", hotel_id=h1.id),
+            items = [
+                MenuItem(name="Chicken Biryani", price=150, image="chicken.jpg", hotel_id=h1.id),
+                MenuItem(name="Chicken Fry", price=120, image="chicken_fry.jpg", hotel_id=h1.id),
+                MenuItem(name="Veg Meals", price=80, image="meals.jpg", hotel_id=h1.id),
 
-            MenuItem(name="Mutton Biryani", price=250, image="mutton.jpg", hotel_id=h2.id),
-            MenuItem(name="Fish Fry", price=170, image="fish.jpg", hotel_id=h2.id),
-            MenuItem(name="Fried Rice", price=130, image="fried_rice.jpg", hotel_id=h2.id),
-        ]
+                MenuItem(name="Mutton Biryani", price=250, image="mutton.jpg", hotel_id=h2.id),
+                MenuItem(name="Fish Fry", price=170, image="fish.jpg", hotel_id=h2.id),
+                MenuItem(name="Fried Rice", price=130, image="fried_rice.jpg", hotel_id=h2.id),
+            ]
 
-        db.session.add_all(items)
-        db.session.commit()
+            db.session.add_all(items)
+            db.session.commit()
 
+    except Exception as e:
+        print("DB Init Error:", e)
 # ================= ROUTES =================
 
 @app.route('/')
